@@ -7,4 +7,4 @@
 <img width="399" height="501" alt="image" src="https://github.com/user-attachments/assets/c2697de3-59c6-4883-ba82-7541b99f548e" />
 
 https://www.youtube.com/watch?v=fC7oUOUEEi4&pp=ygUMc3RpY2sgYnVnZ2Vk
-<img width="1920" height="1080" src="https://warhammer40k.fandom.com/wiki/Emperor%27s_Champion">
+
