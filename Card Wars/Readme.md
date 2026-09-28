@@ -65,6 +65,11 @@ Requisitos
 Se necesita un compilador compatible con C++, por ejemplo:
 
 g++
+
+## Diagrama UML
+
+![Diagrama UML del Juego de Cartas] <img width="1312" height="1199" alt="Diagrama UML" src="https://github.com/user-attachments/assets/bf970002-411b-40e3-8055-71ea8172694c" />
+
 MinGW
 Visual Studio
 Code::Blocks
