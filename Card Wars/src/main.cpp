@@ -5,95 +5,90 @@
 
 using namespace std;
 
-int main() {
+namespace {
+const string archivoPartida = "partidas/partida.txt";
 
-    Juego juego;
-
-    int opcion;
-
+int leerOpcion(const string& mensaje, int minimo, int maximo) {
+    int opcion = 0;
     do {
-
-        cout << endl;
-        cout << "========================================" << endl;
-        cout << "          JUEGO DE CARTAS" << endl;
-        cout << "========================================" << endl;
-
-        cout << "1. Jugar ronda" << endl;
-        cout << "2. Mostrar estado" << endl;
-        cout << "3. Guardar partida" << endl;
-        cout << "4. Cargar partida" << endl;
-        cout << "5. Ver ganador final" << endl;
-        cout << "6. Salir" << endl;
-
-        cout << endl;
-        cout << "Seleccione una opcion: ";
-
+        cout << mensaje;
         cin >> opcion;
-
         if (cin.fail()) {
-
             cin.clear();
-
-            cin.ignore(
-                numeric_limits<streamsize>::max(),
-                '\n'
-            );
-
-            cout << "Entrada invalida." << endl;
-
-            continue;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            opcion = 0;
         }
+    } while (opcion < minimo || opcion > maximo);
+    return opcion;
+}
 
-        switch (opcion) {
+bool jugarPartida(Juego& juego) {
+    while (true) {
+        cout << endl;
+        cout << "========================================" << endl;
+        cout << "             PARTIDA ACTIVA" << endl;
+        cout << "========================================" << endl;
+        cout << "1. Jugar turno" << endl;
+        cout << "2. Ver estado" << endl;
+        cout << "3. Guardar partida" << endl;
+        cout << "4. Guardar y volver al titulo" << endl;
+        cout << "5. Guardar y salir" << endl;
+        int opcion = leerOpcion("Seleccione una opcion: ", 1, 5);
 
-            case 1:
-
-                juego.jugarRonda();
-
-                break;
-
-            case 2:
-
-                juego.mostrarEstado();
-
-                break;
-
-            case 3:
-
-                juego.guardarPartida(
-                    "partidas/partida.txt"
-                );
-
-                break;
-
-            case 4:
-
-                juego.cargarPartida(
-                    "partidas/partida.txt"
-                );
-
-                break;
-
-            case 5:
-
-                juego.mostrarGanador();
-
-                break;
-
-            case 6:
-
-                cout << endl;
-                cout << "Gracias por jugar." << endl;
-
-                break;
-
-            default:
-
-                cout << endl;
-                cout << "Opcion invalida." << endl;
+        if (opcion == 1) {
+            juego.jugarRonda();
+            if (juego.estaTerminada()) {
+                juego.guardarPartida(archivoPartida);
+                return false;
+            }
+        } else if (opcion == 2) {
+            juego.mostrarEstado();
+        } else if (opcion == 3) {
+            juego.guardarPartida(archivoPartida);
+        } else if (opcion == 4) {
+            juego.guardarPartida(archivoPartida);
+            return false;
+        } else {
+            juego.guardarPartida(archivoPartida);
+            return true;
         }
+    }
+}
+}
 
-    } while (opcion != 6);
+int main() {
+    bool salir = false;
+    while (!salir) {
+        cout << endl;
+        cout << "========================================" << endl;
+        cout << "              CARD WARS" << endl;
+        cout << "========================================" << endl;
+        cout << "1. Comenzar" << endl;
+        cout << "2. Reanudar" << endl;
+        cout << "3. Estadisticas" << endl;
+        cout << "4. Salir" << endl;
+        int opcion = leerOpcion("Seleccione una opcion: ", 1, 4);
 
+        if (opcion == 1) {
+            int cantidadJugadores = leerOpcion(
+                "Cantidad de jugadores (1-4): ", 1, 4);
+            Juego juego(cantidadJugadores);
+            salir = jugarPartida(juego);
+        } else if (opcion == 2) {
+            Juego juego;
+            if (juego.cargarPartida(archivoPartida)) {
+                salir = jugarPartida(juego);
+            }
+        } else if (opcion == 3) {
+            Juego estado;
+            if (estado.cargarPartida(archivoPartida)) {
+                estado.mostrarGanador();
+            }
+        } else {
+            salir = true;
+        }
+    }
+
+    cout << "Gracias por jugar." << endl;
     return 0;
 }

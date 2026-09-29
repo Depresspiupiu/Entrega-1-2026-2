@@ -8,8 +8,7 @@
 
 class Juego {
 private:
-    Jugador jugador1;
-    Jugador jugador2;
+    std::vector<Jugador> jugadores;
 
     std::vector<Carta> mazo;
 
@@ -25,21 +24,24 @@ private:
     void elegirColores();
 
     int determinarGanador(
-        const Carta& carta1,
-        const Carta& carta2
+        const std::vector<Carta>& cartas,
+        bool buscarMayor
     ) const;
+    void repartirCartas();
 
 public:
-    Juego();
+    explicit Juego(int cantidadJugadores = 2);
+    void nuevaPartida(int cantidadJugadores);
 
     void jugarRonda();
     void mostrarEstado() const;
+    bool estaTerminada() const;
 
     void guardarPartida(
         const std::string& nombreArchivo
     ) const;
 
-    void cargarPartida(
+    bool cargarPartida(
         const std::string& nombreArchivo
     );
 

@@ -2,11 +2,15 @@
 #define JUGADOR_H
 
 #include <string>
+#include <cstddef>
+#include <vector>
+#include "Carta.h"
 
 class Jugador {
 private:
     std::string nombre;
     int puntaje;
+    std::vector<Carta> cartas;
 
 public:
     Jugador();
@@ -18,6 +22,10 @@ public:
     void sumarPuntos(int puntos);
     void establecerPuntaje(int puntos);
     void mostrarPuntaje() const;
+    const std::vector<Carta>& getCartas() const;
+    void recibirCarta(const Carta& carta);
+    Carta jugarCarta(std::size_t indice);
+    void limpiarCartas();
 };
 
 #endif

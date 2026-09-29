@@ -31,3 +31,21 @@ void Jugador::mostrarPuntaje() const {
     std::cout << nombre << ": "
               << puntaje << " puntos" << std::endl;
 }
+
+const std::vector<Carta>& Jugador::getCartas() const {
+    return cartas;
+}
+
+void Jugador::recibirCarta(const Carta& carta) {
+    cartas.push_back(carta);
+}
+
+Carta Jugador::jugarCarta(std::size_t indice) {
+    Carta carta = cartas.at(indice);
+    cartas.erase(cartas.begin() + indice);
+    return carta;
+}
+
+void Jugador::limpiarCartas() {
+    cartas.clear();
+}

@@ -5,20 +5,25 @@
 #include <algorithm>
 #include <random>
 #include <limits>
+#include <filesystem>
 
 using namespace std;
 
-Juego::Juego() {
+Juego::Juego(int cantidadJugadores) {
+    nuevaPartida(cantidadJugadores);
+}
 
-    jugador1 = Jugador("Jugador 1");
-    jugador2 = Jugador("Jugador 2");
-
+void Juego::nuevaPartida(int cantidadJugadores) {
+    cantidadJugadores = max(1, min(4, cantidadJugadores));
+    jugadores.clear();
+    for (int i = 0; i < cantidadJugadores; ++i) {
+        jugadores.emplace_back("Jugador " + to_string(i + 1));
+    }
     turno = 1;
-
     colorMayor = "";
     colorMenor = "";
-
     crearMazo();
+    repartirCartas();
 }
 
 void Juego::crearMazo() {
@@ -34,7 +39,7 @@ void Juego::crearMazo() {
 
     for (const string& color : colores) {
 
-        for (int poder = 1; poder <= 13; poder++) {
+        for (int poder = 1; poder <= 10; poder++) {
 
             mazo.push_back(
                 Carta(color, poder)
@@ -88,13 +93,7 @@ string Juego::obtenerColor(int opcion) const {
 
 void Juego::elegirColores() {
 
-    string jugadorQueElige;
-
-    if (turno == 1) {
-        jugadorQueElige = jugador1.getNombre();
-    } else {
-        jugadorQueElige = jugador2.getNombre();
-    }
+    string jugadorQueElige = jugadores.at(turno - 1).getNombre();
 
     cout << endl;
     cout << "========================================" << endl;
@@ -160,59 +159,51 @@ void Juego::elegirColores() {
 }
 
 int Juego::determinarGanador(
-    const Carta& carta1,
-    const Carta& carta2
+    const vector<Carta>& cartas,
+    bool buscarMayor
 ) const {
-
-    // Si tienen el mismo color,
-    // gana la carta con mayor poder.
-
-    if (carta1.getColor() == carta2.getColor()) {
-
-        if (carta1.getPoder() > carta2.getPoder()) {
-            return 1;
+    if (cartas.empty()) {
+        return -1;
+    }
+    int ganador = 0;
+    bool empate = false;
+    for (size_t i = 1; i < cartas.size(); ++i) {
+        bool superaGanador = buscarMayor
+            ? cartas[i].getPoder() > cartas[ganador].getPoder()
+            : cartas[i].getPoder() < cartas[ganador].getPoder();
+        if (superaGanador) {
+            ganador = static_cast<int>(i);
+            empate = false;
+        } else if (cartas[i].getPoder() == cartas[ganador].getPoder()) {
+            empate = true;
         }
+    }
+    return empate ? -1 : ganador;
+}
 
-        if (carta2.getPoder() > carta1.getPoder()) {
-            return 2;
+void Juego::repartirCartas() {
+    const size_t cartasPorJugador = 5;
+    if (mazo.size() < jugadores.size() * cartasPorJugador) {
+        crearMazo();
+    }
+    for (Jugador& jugador : jugadores) {
+        jugador.limpiarCartas();
+        for (size_t i = 0; i < cartasPorJugador; ++i) {
+            jugador.recibirCarta(mazo.back());
+            mazo.pop_back();
         }
-
-        return 0;
     }
-
-    // El color mayor tiene prioridad.
-
-    if (carta1.getColor() == colorMayor) {
-        return 1;
-    }
-
-    if (carta2.getColor() == colorMayor) {
-        return 2;
-    }
-
-    // Si ninguno tiene el color mayor,
-    // gana la carta con mayor poder.
-
-    if (carta1.getPoder() > carta2.getPoder()) {
-        return 1;
-    }
-
-    if (carta2.getPoder() > carta1.getPoder()) {
-        return 2;
-    }
-
-    return 0;
 }
 
 void Juego::jugarRonda() {
 
-    if (mazo.size() < 2) {
-
-        cout << endl;
-        cout << "No quedan suficientes cartas." << endl;
-        cout << "Creando un nuevo mazo..." << endl;
-
-        crearMazo();
+    if (jugadores.empty()) {
+        return;
+    }
+    if (estaTerminada()) {
+        cout << endl << "La partida ya termino." << endl;
+        mostrarGanador();
+        return;
     }
 
     cout << endl;
@@ -220,73 +211,92 @@ void Juego::jugarRonda() {
     cout << "              NUEVA RONDA" << endl;
     cout << "========================================" << endl;
 
-    cout << "Jugador que comienza: ";
-
-    if (turno == 1) {
-        cout << jugador1.getNombre() << endl;
-    } else {
-        cout << jugador2.getNombre() << endl;
+    turno = ((turno - 1) % static_cast<int>(jugadores.size())) + 1;
+    cout << "Jugador que comienza: "
+         << jugadores[turno - 1].getNombre() << endl;
+    cout << endl << "MANOS DISPONIBLES" << endl;
+    for (const Jugador& jugador : jugadores) {
+        cout << jugador.getNombre() << ":" << endl;
+        const vector<Carta>& mano = jugador.getCartas();
+        for (size_t i = 0; i < mano.size(); ++i) {
+            cout << "  " << (i + 1) << ". ";
+            mano[i].mostrar();
+        }
     }
 
-    elegirColores();
+    string seleccion;
+    do {
+        cout << jugadores[turno - 1].getNombre()
+             << ", escriba alta o baja para esta ronda: ";
+        cin >> seleccion;
+        if (seleccion != "alta" && seleccion != "baja") {
+            cout << "Orden invalida. Escriba alta o baja." << endl;
+        }
+    } while (seleccion != "alta" && seleccion != "baja");
 
-    Carta carta1 = mazo.back();
-    mazo.pop_back();
+    vector<Carta> cartasJugadas(jugadores.size());
+    for (size_t orden = 0; orden < jugadores.size(); ++orden) {
+        size_t indiceJugador = (turno - 1 + orden) % jugadores.size();
+        Jugador& jugador = jugadores[indiceJugador];
+        size_t indiceCarta = 0;
+        do {
+            cout << jugador.getNombre() << ", elija una carta (1-"
+                 << jugador.getCartas().size() << "): ";
+            cin >> indiceCarta;
+            if (cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                indiceCarta = 0;
+            }
+            if (indiceCarta < 1 || indiceCarta > jugador.getCartas().size()) {
+                cout << "Carta invalida." << endl;
+            }
+        } while (indiceCarta < 1 || indiceCarta > jugador.getCartas().size());
 
-    Carta carta2 = mazo.back();
-    mazo.pop_back();
+        cartasJugadas[indiceJugador] = jugador.jugarCarta(indiceCarta - 1);
+        cout << jugador.getNombre() << " juega: ";
+        cartasJugadas[indiceJugador].mostrar();
+    }
 
-    cout << endl;
-
-    cout << jugador1.getNombre() << " recibe:" << endl;
-    carta1.mostrar();
-
-    cout << endl;
-
-    cout << jugador2.getNombre() << " recibe:" << endl;
-    carta2.mostrar();
-
-    int ganador = determinarGanador(
-        carta1,
-        carta2
-    );
+    int ganador = determinarGanador(cartasJugadas, seleccion == "alta");
+    int sumaRonda = 0;
+    for (const Carta& carta : cartasJugadas) {
+        sumaRonda += carta.getPoder();
+    }
 
     cout << endl;
     cout << "----------------------------------------" << endl;
 
-    if (ganador == 1) {
-
-        cout << "GANADOR: "
-             << jugador1.getNombre() << endl;
-
-        jugador1.sumarPuntos(
-            carta1.getPoder()
-        );
-
-        turno = 1;
-    }
-
-    else if (ganador == 2) {
-
-        cout << "GANADOR: "
-             << jugador2.getNombre() << endl;
-
-        jugador2.sumarPuntos(
-            carta2.getPoder()
-        );
-
-        turno = 2;
-    }
-
-    else {
-
+    if (ganador >= 0) {
+        cout << "GANADOR: " << jugadores[ganador].getNombre() << endl;
+        cout << "Puntos obtenidos: " << sumaRonda << endl;
+        jugadores[ganador].sumarPuntos(sumaRonda);
+        turno = (turno % static_cast<int>(jugadores.size())) + 1;
+    } else {
         cout << "EMPATE." << endl;
+        turno = (turno % static_cast<int>(jugadores.size())) + 1;
     }
 
     cout << "----------------------------------------"
          << endl;
 
     mostrarEstado();
+
+    if (estaTerminada()) {
+        mostrarGanador();
+    }
+}
+
+bool Juego::estaTerminada() const {
+    if (jugadores.empty()) {
+        return true;
+    }
+    for (const Jugador& jugador : jugadores) {
+        if (!jugador.getCartas().empty()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void Juego::mostrarEstado() const {
@@ -296,35 +306,21 @@ void Juego::mostrarEstado() const {
     cout << "           ESTADO DE PARTIDA" << endl;
     cout << "========================================" << endl;
 
-    jugador1.mostrarPuntaje();
-    jugador2.mostrarPuntaje();
-
-    cout << endl;
-
-    cout << "Color mayor: ";
-
-    if (colorMayor.empty()) {
-        cout << "No seleccionado" << endl;
-    } else {
-        cout << colorMayor << endl;
-    }
-
-    cout << "Color menor: ";
-
-    if (colorMenor.empty()) {
-        cout << "No seleccionado" << endl;
-    } else {
-        cout << colorMenor << endl;
+    for (const Jugador& jugador : jugadores) {
+        jugador.mostrarPuntaje();
+        cout << "  Cartas en mano (" << jugador.getCartas().size() << "):" << endl;
+        for (const Carta& carta : jugador.getCartas()) {
+            cout << "    ";
+            carta.mostrar();
+        }
     }
 
     cout << endl;
 
-    cout << "Proximo jugador que comienza: ";
+    cout << "Turno actual, comienza: ";
 
-    if (turno == 1) {
-        cout << jugador1.getNombre() << endl;
-    } else {
-        cout << jugador2.getNombre() << endl;
+    if (!jugadores.empty()) {
+        cout << jugadores[(turno - 1) % jugadores.size()].getNombre() << endl;
     }
 
     cout << "Cartas restantes: "
@@ -338,6 +334,12 @@ void Juego::guardarPartida(
     const string& nombreArchivo
 ) const {
 
+    filesystem::path directorio = filesystem::path(nombreArchivo).parent_path();
+    if (!directorio.empty()) {
+        error_code error;
+        filesystem::create_directories(directorio, error);
+    }
+
     ofstream archivo(nombreArchivo);
 
     if (!archivo.is_open()) {
@@ -349,23 +351,24 @@ void Juego::guardarPartida(
         return;
     }
 
-    archivo << jugador1.getNombre() << endl;
-    archivo << jugador2.getNombre() << endl;
-
-    archivo << jugador1.getPuntaje() << endl;
-    archivo << jugador2.getPuntaje() << endl;
-
+    archivo << "CARDWARS2" << endl;
+    archivo << jugadores.size() << endl;
     archivo << turno << endl;
-
     archivo << colorMayor << endl;
     archivo << colorMenor << endl;
-
     archivo << mazo.size() << endl;
-
     for (const Carta& carta : mazo) {
-
         archivo << carta.getColor() << endl;
         archivo << carta.getPoder() << endl;
+    }
+    for (const Jugador& jugador : jugadores) {
+        archivo << jugador.getNombre() << endl;
+        archivo << jugador.getPuntaje() << endl;
+        archivo << jugador.getCartas().size() << endl;
+        for (const Carta& carta : jugador.getCartas()) {
+            archivo << carta.getColor() << endl;
+            archivo << carta.getPoder() << endl;
+        }
     }
 
     archivo.close();
@@ -376,7 +379,7 @@ void Juego::guardarPartida(
     cout << "========================================" << endl;
 }
 
-void Juego::cargarPartida(
+bool Juego::cargarPartida(
     const string& nombreArchivo
 ) {
 
@@ -386,66 +389,77 @@ void Juego::cargarPartida(
 
         cout << endl;
         cout << "No existe una partida guardada." << endl;
-
-        return;
+        return false;
     }
 
-    string nombre1;
-    string nombre2;
-
-    int puntaje1;
-    int puntaje2;
-
-    int cantidadCartas;
-
-    getline(archivo, nombre1);
-    getline(archivo, nombre2);
-
-    archivo >> puntaje1;
-    archivo >> puntaje2;
-
-    archivo >> turno;
-
-    archivo.ignore(
-        numeric_limits<streamsize>::max(),
-        '\n'
-    );
-
+    string formato;
+    getline(archivo, formato);
+    if (formato != "CARDWARS2") {
+        string nombre2;
+        int puntaje1;
+        int puntaje2;
+        size_t cantidadCartasAntigua;
+        getline(archivo, nombre2);
+        archivo >> puntaje1 >> puntaje2 >> turno;
+        archivo.ignore(numeric_limits<streamsize>::max(), '\n');
+        getline(archivo, colorMayor);
+        getline(archivo, colorMenor);
+        archivo >> cantidadCartasAntigua;
+        archivo.ignore(numeric_limits<streamsize>::max(), '\n');
+        mazo.clear();
+        for (size_t i = 0; i < cantidadCartasAntigua; ++i) {
+            string color;
+            int poder;
+            getline(archivo, color);
+            archivo >> poder;
+            archivo.ignore(numeric_limits<streamsize>::max(), '\n');
+            mazo.emplace_back(color, poder);
+        }
+        jugadores.clear();
+        jugadores.emplace_back(formato);
+        jugadores.back().establecerPuntaje(puntaje1);
+        jugadores.emplace_back(nombre2);
+        jugadores.back().establecerPuntaje(puntaje2);
+        repartirCartas();
+        cout << endl << "Partida antigua cargada; se repartieron nuevas manos." << endl;
+        mostrarEstado();
+        return true;
+    }
+    size_t cantidadJugadores;
+    size_t cantidadCartas;
+    archivo >> cantidadJugadores >> turno;
+    archivo.ignore(numeric_limits<streamsize>::max(), '\n');
     getline(archivo, colorMayor);
     getline(archivo, colorMenor);
-
     archivo >> cantidadCartas;
-
-    archivo.ignore(
-        numeric_limits<streamsize>::max(),
-        '\n'
-    );
-
-    jugador1 = Jugador(nombre1);
-    jugador2 = Jugador(nombre2);
-
-    jugador1.establecerPuntaje(puntaje1);
-    jugador2.establecerPuntaje(puntaje2);
-
+    archivo.ignore(numeric_limits<streamsize>::max(), '\n');
     mazo.clear();
-
-    for (int i = 0; i < cantidadCartas; i++) {
-
+    for (size_t i = 0; i < cantidadCartas; ++i) {
         string color;
         int poder;
-
         getline(archivo, color);
-
         archivo >> poder;
-
-        archivo.ignore(
-            numeric_limits<streamsize>::max(),
-            '\n'
-        );
-
-        mazo.push_back(
-            Carta(color, poder)
-        );
+        archivo.ignore(numeric_limits<streamsize>::max(), '\n');
+        mazo.emplace_back(color, poder);
+    }
+    jugadores.clear();
+    for (size_t i = 0; i < cantidadJugadores; ++i) {
+        string nombre;
+        int puntaje;
+        size_t cantidadEnMano;
+        getline(archivo, nombre);
+        archivo >> puntaje >> cantidadEnMano;
+        archivo.ignore(numeric_limits<streamsize>::max(), '\n');
+        jugadores.emplace_back(nombre);
+        jugadores.back().establecerPuntaje(puntaje);
+        for (size_t j = 0; j < cantidadEnMano; ++j) {
+            string color;
+            int poder;
+            getline(archivo, color);
+            archivo >> poder;
+            archivo.ignore(numeric_limits<streamsize>::max(), '\n');
+            jugadores.back().recibirCarta(Carta(color, poder));
+        }
     }
 
     archivo.close();
@@ -456,6 +470,7 @@ void Juego::cargarPartida(
     cout << "========================================" << endl;
 
     mostrarEstado();
+    return true;
 }
 
 void Juego::mostrarGanador() const {
@@ -465,28 +480,35 @@ void Juego::mostrarGanador() const {
     cout << "             RESULTADO FINAL" << endl;
     cout << "========================================" << endl;
 
-    jugador1.mostrarPuntaje();
-    jugador2.mostrarPuntaje();
+    for (const Jugador& jugador : jugadores) {
+        jugador.mostrarPuntaje();
+    }
 
     cout << endl;
 
-    if (jugador1.getPuntaje() >
-        jugador2.getPuntaje()) {
-
-        cout << "GANADOR DE LA PARTIDA: "
-             << jugador1.getNombre() << endl;
+    if (jugadores.empty()) {
+        cout << "No hay jugadores." << endl;
+        return;
     }
-
-    else if (jugador2.getPuntaje() >
-             jugador1.getPuntaje()) {
-
-        cout << "GANADOR DE LA PARTIDA: "
-             << jugador2.getNombre() << endl;
+    if (!estaTerminada()) {
+        cout << "La partida aun no termina." << endl;
+        return;
     }
-
-    else {
-
+    int ganador = 0;
+    bool empate = false;
+    for (size_t i = 1; i < jugadores.size(); ++i) {
+        if (jugadores[i].getPuntaje() > jugadores[ganador].getPuntaje()) {
+            ganador = static_cast<int>(i);
+            empate = false;
+        } else if (jugadores[i].getPuntaje() == jugadores[ganador].getPuntaje()) {
+            empate = true;
+        }
+    }
+    if (empate) {
         cout << "LA PARTIDA TERMINO EN EMPATE." << endl;
+    } else {
+        cout << "GANADOR DE LA PARTIDA: "
+             << jugadores[ganador].getNombre() << endl;
     }
 
     cout << "========================================" << endl;
