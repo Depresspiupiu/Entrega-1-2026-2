@@ -38,16 +38,18 @@ void Juego::crearMazo() {
     };
 
     for (const string& color : colores) {
-
         for (int poder = 1; poder <= 10; poder++) {
-
-            mazo.push_back(
-                Carta(color, poder)
-            );
+            mazo.push_back(Carta(color, poder));
         }
     }
 
     mezclarMazo();
+
+    const size_t cartasPorJugador = 4;
+    const size_t totalCartas = jugadores.size() * cartasPorJugador;
+    if (mazo.size() > totalCartas) {
+        mazo.resize(totalCartas);
+    }
 }
 
 void Juego::mezclarMazo() {
@@ -182,7 +184,7 @@ int Juego::determinarGanador(
 }
 
 void Juego::repartirCartas() {
-    const size_t cartasPorJugador = 5;
+    const size_t cartasPorJugador = 4;
     if (mazo.size() < jugadores.size() * cartasPorJugador) {
         crearMazo();
     }

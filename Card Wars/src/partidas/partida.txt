@@ -1,0 +1,28 @@
+CARDWARS2
+2
+1
+
+
+0
+Jugador 1
+0
+4
+Rojo
+6
+Amarillo
+7
+Amarillo
+4
+Verde
+4
+Jugador 2
+0
+4
+Azul
+10
+Amarillo
+5
+Verde
+10
+Amarillo
+3
