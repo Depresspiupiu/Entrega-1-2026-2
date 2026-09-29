@@ -46,33 +46,16 @@ Cartas restantes.
 
 La partida puede cargarse posteriormente para continuar.
 
-Compilar
+Compilar en Windows
 
-Desde una terminal ubicada en la carpeta del proyecto:
+Instala MinGW-w64 con g++ y agregalo a `PATH`. Ejecuta `ejecutable.bat` o
+compila desde esta carpeta con:
 
-g++ src/main.cpp src/Carta.cpp src/Jugador.cpp src/Juego.cpp -o juego
-Ejecutar
+```bat
+g++ -std=c++17 -O2 -static -static-libgcc -static-libstdc++ src\main.cpp src\Carta.cpp src\Jugador.cpp src\Juego.cpp -o juego.exe
+```
 
-En Linux o macOS:
-
-./juego
-
-En Windows:
-
-juego.exe
-Requisitos
-
-Se necesita un compilador compatible con C++, por ejemplo:
-
-g++
-
-## Diagrama UML
-
-![Diagrama UML del Juego de Cartas] <img width="1312" height="1199" alt="Diagrama UML" src="https://github.com/user-attachments/assets/bf970002-411b-40e3-8055-71ea8172694c" />
-
-MinGW
-Visual Studio
-Code::Blocks
-Visual Studio Code con un compilador C++
-
-No utiliza librerías externas.
+El resultado es `juego.exe`, enlazado estaticamente para no depender de DLL de
+MinGW. Se compila para Windows de 32 bits y tambien puede ejecutarse en Windows
+de 64 bits. No puede ejecutarse directamente en Linux o macOS. El proyecto no
+utiliza librerias externas.
