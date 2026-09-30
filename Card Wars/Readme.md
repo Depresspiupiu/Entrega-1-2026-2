@@ -106,3 +106,4 @@ Este proyecto está pensado para Windows y su flujo de compilación está orient
 - Windows 10 o superior
 - `g++` en PATH o instalación de WinLibs
 
+<img width="1312" height="1199" alt="Diagrama UML" src="https://github.com/user-attachments/assets/db4069bd-6817-4521-812e-6156c24020f7" />
